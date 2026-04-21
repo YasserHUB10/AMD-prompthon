@@ -1,176 +1,178 @@
-// Application State
 let meals = JSON.parse(localStorage.getItem('meals')) || [];
 let currentGoal = localStorage.getItem('goal') || 'loss';
 
-// DOM Elements Selection
+const $ = id => document.getElementById(id);
 const goalBtns = document.querySelectorAll('.goal-btn');
-const totalCaloriesEl = document.getElementById('totalCalories');
-const mealCountEl = document.getElementById('mealCount');
-const healthScoreEl = document.getElementById('healthScore');
-const resetBtn = document.getElementById('resetBtn');
-const foodForm = document.getElementById('foodForm');
-const mealNameInput = document.getElementById('mealName');
-const mealCaloriesInput = document.getElementById('mealCalories');
-const mealList = document.getElementById('mealList');
-const currentGoalText = document.getElementById('currentGoalText');
-const aiSuggestions = document.getElementById('aiSuggestions');
 
-// AI Logic Rules based on Fitness Goals
+const els = {
+    totalCals: $('totalCalories'),
+    mealCount: $('mealCount'),
+    healthScore: $('healthScore'),
+    resetBtn: $('resetBtn'),
+    foodForm: $('foodForm'),
+    mealName: $('mealName'),
+    mealCals: $('mealCalories'),
+    mealList: $('mealList'),
+    goalText: $('currentGoalText'),
+    suggestions: $('aiSuggestions'),
+    progressFill: $('progressFill'),
+    progressText: $('progressText')
+};
+
 const aiRules = {
     loss: [
-        { name: "Grilled Chicken Salad", desc: "High protein, low calorie. Great for fullness.", icon: "fa-carrot", cals: 350 },
-        { name: "Zucchini Noodles", desc: "Low carb alternative, very low calorie.", icon: "fa-seedling", cals: 200 },
+        { name: "Grilled Chicken Salad", desc: "High protein, low calorie — great for fullness.", icon: "fa-carrot", cals: 350 },
+        { name: "Zucchini Noodles", desc: "Low carb alternative, very light.", icon: "fa-seedling", cals: 200 },
         { name: "Oatmeal with Berries", desc: "High fiber, keeps you full longer.", icon: "fa-bowl-food", cals: 300 }
     ],
     maintain: [
-        { name: "Quinoa Bowl", desc: "Balanced macro profile with good carbs.", icon: "fa-bowl-rice", cals: 500 },
-        { name: "Turkey Wrap", desc: "Lean protein with whole wheat wrap.", icon: "fa-hotdog", cals: 450 },
+        { name: "Quinoa Bowl", desc: "Balanced macros with good carbs.", icon: "fa-bowl-rice", cals: 500 },
+        { name: "Turkey Wrap", desc: "Lean protein in a whole wheat wrap.", icon: "fa-hotdog", cals: 450 },
         { name: "Salmon & Sweet Potato", desc: "Healthy fats and complex carbs.", icon: "fa-fish", cals: 600 }
     ],
     gain: [
         { name: "Peanut Butter Smoothie", desc: "Calorie dense and high protein.", icon: "fa-glass-water", cals: 700 },
-        { name: "Steak and Rice", desc: "High protein and carb heavy for growth.", icon: "fa-drumstick-bite", cals: 850 },
-        { name: "Avocado Toast & Eggs", desc: "Healthy fats to boost calorie intake.", icon: "fa-bread-slice", cals: 550 }
+        { name: "Steak and Rice", desc: "High protein, carb heavy for growth.", icon: "fa-drumstick-bite", cals: 850 },
+        { name: "Avocado Toast & Eggs", desc: "Healthy fats to boost intake.", icon: "fa-bread-slice", cals: 550 }
     ]
 };
 
-const goalLabels = {
-    loss: "Weight Loss",
-    maintain: "Maintain",
-    gain: "Weight Gain"
-};
+const goalLabels = { loss: "Weight Loss", maintain: "Maintain", gain: "Weight Gain" };
+const goalTargets = { loss: 1800, maintain: 2200, gain: 2800 };
 
-// Application Initialization
+function sanitize(str) {
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+}
+
 function init() {
-    setupEventListeners();
+    goalBtns.forEach(btn => {
+        btn.addEventListener('click', e => {
+            const target = e.currentTarget;
+            goalBtns.forEach(b => b.classList.remove('active'));
+            target.classList.add('active');
+            currentGoal = target.dataset.goal;
+            localStorage.setItem('goal', currentGoal);
+            updateUI();
+        });
+    });
+
+    els.foodForm.addEventListener('submit', e => {
+        e.preventDefault();
+        const name = els.mealName.value.trim();
+        const cals = parseInt(els.mealCals.value);
+        if (!name || !cals || cals < 1) return;
+
+        meals.push({ id: Date.now(), name: sanitize(name), cals });
+        localStorage.setItem('meals', JSON.stringify(meals));
+        els.mealName.value = '';
+        els.mealCals.value = '';
+        els.mealName.focus();
+        updateUI();
+    });
+
+    els.resetBtn.addEventListener('click', () => {
+        if (!confirm('Clear today\'s log?')) return;
+        meals = [];
+        localStorage.setItem('meals', JSON.stringify(meals));
+        updateUI();
+    });
+
     updateUI();
 }
 
-function setupEventListeners() {
-    // Goal Selection
-    goalBtns.forEach(btn => {
-        btn.addEventListener('click', (e) => {
-            goalBtns.forEach(b => b.classList.remove('active'));
-            e.target.classList.add('active');
-            currentGoal = e.target.getAttribute('data-goal');
-            localStorage.setItem('goal', currentGoal);
-            updateUI(); // Complete UI refresh needed for goal change
-        });
-    });
+function deleteMeal(id) {
+    meals = meals.filter(m => m.id !== id);
+    localStorage.setItem('meals', JSON.stringify(meals));
+    updateUI();
+}
 
-    // Form Submission
-    foodForm.addEventListener('submit', (e) => {
-        e.preventDefault();
-        const name = mealNameInput.value.trim();
-        const cals = parseInt(mealCaloriesInput.value);
+function computeScore(totalCals, count) {
+    if (count === 0) return 0;
+    const target = goalTargets[currentGoal];
+    const deviation = Math.abs(totalCals - target) / target;
+    let score = Math.max(0, 100 - deviation * 100);
+    if (count >= 3 && count <= 5) score = Math.min(100, score + 8);
+    if (count === 1 && totalCals > target) score = Math.max(score - 10, 0);
+    return Math.round(Math.max(0, Math.min(100, score)));
+}
 
-        if (name && cals > 0) {
-            const newMeal = {
-                id: Date.now(),
-                name: name,
-                cals: cals
-            };
-            meals.push(newMeal);
-            localStorage.setItem('meals', JSON.stringify(meals));
-            
-            // Clear inputs
-            mealNameInput.value = '';
-            mealCaloriesInput.value = '';
-            
-            updateUI();
-        }
-    });
-
-    // Reset Today's Log
-    resetBtn.addEventListener('click', () => {
-        if(confirm('Are you sure you want to clear today\'s log?')){
-            meals = [];
-            localStorage.setItem('meals', JSON.stringify(meals));
-            updateUI();
-        }
-    });
+function animateNumber(el, target) {
+    const current = parseInt(el.textContent) || 0;
+    if (current === target) return;
+    const diff = target - current;
+    const steps = 20;
+    const increment = diff / steps;
+    let step = 0;
+    const timer = setInterval(() => {
+        step++;
+        el.textContent = Math.round(current + increment * step);
+        if (step >= steps) { el.textContent = target; clearInterval(timer); }
+    }, 25);
 }
 
 function updateUI() {
-    // 1. Update goal button highlight state
-    goalBtns.forEach(b => {
-        if(b.getAttribute('data-goal') === currentGoal) {
-            b.classList.add('active');
-        } else {
-            b.classList.remove('active');
-        }
-    });
+    goalBtns.forEach(b => b.classList.toggle('active', b.dataset.goal === currentGoal));
 
-    // 2. Compute Dashboard Metrics
-    const totalCals = meals.reduce((sum, meal) => sum + meal.cals, 0);
+    const totalCals = meals.reduce((s, m) => s + m.cals, 0);
     const count = meals.length;
+    const score = computeScore(totalCals, count);
+    const target = goalTargets[currentGoal];
 
-    // AI Health Score Engine (Simplified algorithm)
-    let score = 100;
-    
+    animateNumber(els.totalCals, totalCals);
+    animateNumber(els.mealCount, count);
+    animateNumber(els.healthScore, score);
+
+    // Color-code health score
+    const scoreEl = els.healthScore;
+    scoreEl.className = '';
+    if (score >= 70) scoreEl.classList.add('score-high');
+    else if (score >= 40) scoreEl.classList.add('score-mid');
+    else scoreEl.classList.add('score-low');
+
+    // Progress bar
+    const pct = Math.min((totalCals / target) * 100, 100);
+    els.progressFill.style.width = pct + '%';
+    els.progressFill.classList.toggle('over', totalCals > target);
+    els.progressText.textContent = `${totalCals} / ${target} kcal`;
+
+    // Meal list
+    els.mealList.innerHTML = '';
     if (count === 0) {
-        score = 0; // Fresh slate, no score yet
+        els.mealList.innerHTML = '<li class="empty-state">No meals logged yet. Add your first meal above!</li>';
     } else {
-        // Penalty logic based on deviation from goal calories
-        if (currentGoal === 'loss' && totalCals > 2000) {
-            score -= (totalCals - 2000) / 10;
-        } else if (currentGoal === 'gain' && totalCals < 2500 && count >= 3) {
-            score -= (2500 - totalCals) / 15;
-        } else if (currentGoal === 'maintain' && (totalCals < 1500 || totalCals > 2500) && count >= 2) {
-            score -= 15;
-        }
-        
-        // Reward consistency
-        if (count >= 3 && count <= 5) score += 5;
-    }
-    
-    // Bounds check
-    score = Math.max(0, Math.min(100, Math.round(score)));
-
-    // 3. Render Dashboard text
-    totalCaloriesEl.textContent = totalCals;
-    mealCountEl.textContent = count;
-    healthScoreEl.textContent = score;
-
-    // 4. Render Meal List
-    mealList.innerHTML = '';
-    if (meals.length === 0) {
-        mealList.innerHTML = '<li class="meal-item" style="justify-content:center; color: var(--text-muted);">No meals logged yet.</li>';
-    } else {
-        // Render in reverse chronological order
-        [...meals].reverse().forEach(meal => {
+        [...meals].reverse().forEach((meal, i) => {
             const li = document.createElement('li');
             li.className = 'meal-item';
+            li.style.animationDelay = (i * 0.05) + 's';
             li.innerHTML = `
                 <span class="meal-item-name">${meal.name}</span>
-                <span class="meal-item-cals">${meal.cals} kcal</span>
-            `;
-            mealList.appendChild(li);
+                <div class="meal-item-right">
+                    <span class="meal-item-cals">${meal.cals} kcal</span>
+                    <button class="meal-delete" onclick="deleteMeal(${meal.id})" title="Remove"><i class="fa-solid fa-xmark"></i></button>
+                </div>`;
+            els.mealList.appendChild(li);
         });
     }
 
-    // 5. Update AI Suggestions Block
     updateSuggestions();
 }
 
 function updateSuggestions() {
-    currentGoalText.textContent = goalLabels[currentGoal];
-    const suggestions = aiRules[currentGoal];
-    
-    aiSuggestions.innerHTML = '';
-    suggestions.forEach(item => {
+    els.goalText.textContent = goalLabels[currentGoal];
+    els.suggestions.innerHTML = '';
+    aiRules[currentGoal].forEach(item => {
         const div = document.createElement('div');
         div.className = 'suggestion-card';
         div.innerHTML = `
             <div class="suggestion-icon"><i class="fa-solid ${item.icon}"></i></div>
             <div class="suggestion-info">
-                <h4>${item.name} (${item.cals} kcal)</h4>
+                <h4>${item.name} <span style="color:var(--muted);font-weight:400;font-size:0.82rem;">${item.cals} kcal</span></h4>
                 <p>${item.desc}</p>
-            </div>
-        `;
-        aiSuggestions.appendChild(div);
+            </div>`;
+        els.suggestions.appendChild(div);
     });
 }
 
-// Start the app natively
 init();

@@ -3,36 +3,32 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Smart Food & Health Assistant</title>
-    <!-- CSS -->
+    <meta name="description" content="NutriSmart — AI-powered meal logger and health dashboard. Track calories, get personalized meal suggestions, and monitor your health score.">
+    <title>NutriSmart — AI-Powered Food & Health Assistant</title>
     <link rel="stylesheet" href="style.css">
-    <!-- Google Fonts for modern typography -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <!-- FontAwesome for icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
     <div class="app-container">
-        <!-- Header -->
         <header>
-            <h1><i class="fa-solid fa-leaf"></i> NutriSmart</h1>
+            <div class="logo-pulse"><i class="fa-solid fa-leaf"></i></div>
+            <h1>NutriSmart</h1>
             <p>AI-Powered Health Assistant</p>
         </header>
 
         <main>
-            <!-- Goal Selector -->
-            <section class="card goal-section">
-                <h2>Your Goal</h2>
+            <section class="card goal-section" id="goalSection">
+                <h2><i class="fa-solid fa-bullseye"></i> Your Goal</h2>
                 <div class="goal-buttons">
-                    <button class="goal-btn active" data-goal="loss">Weight Loss</button>
-                    <button class="goal-btn" data-goal="maintain">Maintain</button>
-                    <button class="goal-btn" data-goal="gain">Weight Gain</button>
+                    <button class="goal-btn active" data-goal="loss"><i class="fa-solid fa-arrow-down"></i> Weight Loss</button>
+                    <button class="goal-btn" data-goal="maintain"><i class="fa-solid fa-scale-balanced"></i> Maintain</button>
+                    <button class="goal-btn" data-goal="gain"><i class="fa-solid fa-arrow-up"></i> Weight Gain</button>
                 </div>
             </section>
 
-            <!-- Dashboard -->
-            <section class="card dashboard">
-                <h2>Dashboard</h2>
+            <section class="card dashboard" id="dashboardSection">
+                <h2><i class="fa-solid fa-chart-simple"></i> Dashboard</h2>
                 <div class="stats-grid">
                     <div class="stat-box">
                         <i class="fa-solid fa-fire"></i>
@@ -42,49 +38,53 @@
                     <div class="stat-box">
                         <i class="fa-solid fa-utensils"></i>
                         <h3 id="mealCount">0</h3>
-                        <p>Meals Logged</p>
+                        <p>Meals</p>
                     </div>
-                    <div class="stat-box">
+                    <div class="stat-box score-box">
                         <i class="fa-solid fa-heart-pulse"></i>
-                        <h3 id="healthScore">100</h3>
+                        <h3 id="healthScore">0</h3>
                         <p>Health Score</p>
+                    </div>
+                </div>
+                <div class="progress-section">
+                    <div class="progress-label">
+                        <span>Calorie Budget</span>
+                        <span id="progressText">0 / 2000 kcal</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="progressFill"></div>
                     </div>
                 </div>
                 <button id="resetBtn" class="action-btn danger"><i class="fa-solid fa-trash"></i> Reset Today</button>
             </section>
 
-            <!-- Log Food Form -->
-            <section class="card log-food">
-                <h2>Log a Meal</h2>
+            <section class="card log-food" id="logSection">
+                <h2><i class="fa-solid fa-pen-to-square"></i> Log a Meal</h2>
                 <form id="foodForm">
-                    <div class="input-group">
-                        <input type="text" id="mealName" placeholder="e.g., Grilled Chicken Salad" required>
-                    </div>
-                    <div class="input-group">
-                        <input type="number" id="mealCalories" placeholder="Calories (e.g., 350)" required min="1">
+                    <div class="input-row">
+                        <input type="text" id="mealName" placeholder="e.g., Grilled Chicken Salad" required maxlength="50">
+                        <input type="number" id="mealCalories" placeholder="Calories" required min="1" max="5000">
                     </div>
                     <button type="submit" class="action-btn primary"><i class="fa-solid fa-plus"></i> Add Meal</button>
                 </form>
                 <div class="meal-list-container">
                     <h3>Today's Meals</h3>
-                    <ul id="mealList" class="meal-list">
-                        <!-- Meals dynamically injected here -->
-                    </ul>
+                    <ul id="mealList" class="meal-list"></ul>
                 </div>
             </section>
 
-            <!-- AI Suggestions -->
-            <section class="card suggestions">
+            <section class="card suggestions" id="suggestionsSection">
                 <h2><i class="fa-solid fa-robot"></i> AI Suggestions</h2>
                 <p class="suggestion-desc">Based on your <span id="currentGoalText" class="highlight">Weight Loss</span> goal:</p>
-                <div id="aiSuggestions" class="suggestion-grid">
-                    <!-- Suggestions dynamically injected here -->
-                </div>
+                <div id="aiSuggestions" class="suggestion-grid"></div>
             </section>
         </main>
+
+        <footer>
+            <p>Built with <i class="fa-solid fa-heart"></i> for AMD Prompthon 2026</p>
+        </footer>
     </div>
-    
-    <!-- Scripts -->
+
     <script src="script.js"></script>
 </body>
 </html>
